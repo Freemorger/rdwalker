@@ -5,7 +5,7 @@
  *
  *    Description: recursive directory walker 
  *
- *        Version:  1.0
+ *        Version:  1.1
  *        Created:  09.01.2026 04:07:19
  *       Revision:  none
  *       Compiler:  gcc
@@ -23,17 +23,20 @@
 #include <dirent.h>
 
 bool is_dir(char* path);
-void walk(char* path, int foldlvl); 
+void walk(char* path, int foldlvl, bool show_hid); 
+bool is_prefix(char* st, char* pre);
 
 int main(int argc, char** argv) {
     if (argc < 2) {
         char* path = "./";
-        walk(path, 0);
+        walk(path, 0, false);
         return 0;
     }
     char* path = argv[1];
 
-    walk(path, 0);
+    bool show_hidden = (argc >= 3) && (strstr(argv[2], "-a") != NULL);
+    printf("-a is: %d\n", show_hidden);
+    walk(path, 0, show_hidden);
     return 0;
 }
 
@@ -85,7 +88,7 @@ void print_fname(char* path, int foldlvl) {
     free(sep_path);
 }
 
-void walk(char* path, int foldlvl) {
+void walk(char* path, int foldlvl, bool show_hid) {
     if (!is_dir(path)) {
         print_fname(path, foldlvl);
         return;
@@ -100,7 +103,14 @@ void walk(char* path, int foldlvl) {
     struct dirent* entry;
     while ((entry = readdir(_dir)) != NULL) {
         char* entry_name = entry->d_name;
-        if (!strcmp(entry_name, ".") || !strcmp(entry_name, "..")) continue;
+
+        bool isdot = strcmp(entry_name, ".") == 0;
+        bool startswith = is_prefix(entry_name, ".");
+
+        if (!isdot && !show_hid && startswith) {
+            continue;
+        }
+        if (isdot || !strcmp(entry_name, "..")) continue;
 
         size_t need_size = strlen(path) + strlen(entry_name) + 2; // 1 for slash, 1 for term
         char* full = malloc(sizeof(char) * need_size);
@@ -111,11 +121,16 @@ void walk(char* path, int foldlvl) {
             print_fname(full, foldlvl);
             *end = '/';
             *(end + 1) = '\0';
-            walk(full, foldlvl + 1);
+            walk(full, foldlvl + 1, show_hid);
         } else {
-            walk(full, foldlvl);
+            walk(full, foldlvl, show_hid);
         }
 
         free(full);
     }
 }
+
+bool is_prefix(char* st, char* pre) {
+    return strncmp(pre, st, strlen(pre)) == 0;
+}
+
