@@ -35,7 +35,6 @@ int main(int argc, char** argv) {
     char* path = argv[1];
 
     bool show_hidden = (argc >= 3) && (strstr(argv[2], "-a") != NULL);
-    printf("-a is: %d\n", show_hidden);
     walk(path, 0, show_hidden);
     return 0;
 }
@@ -128,6 +127,8 @@ void walk(char* path, int foldlvl, bool show_hid) {
 
         free(full);
     }
+
+    closedir(_dir);
 }
 
 bool is_prefix(char* st, char* pre) {
